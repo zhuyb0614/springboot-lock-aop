@@ -20,9 +20,11 @@ import java.lang.reflect.Method;
  */
 public abstract class BaseLockAspect implements MethodInterceptor {
 
+    private static final String PACKAGE_SEPARATOR = ".";
+    private static final String KEY_SEPARATOR = ":";
     protected LockProperties lockProperties;
 
-    public BaseLockAspect(LockProperties lockProperties) {
+    protected BaseLockAspect(LockProperties lockProperties) {
         this.lockProperties = lockProperties;
     }
 
@@ -37,9 +39,29 @@ public abstract class BaseLockAspect implements MethodInterceptor {
         }
     }
 
+    /**
+     * 当前方法存在Lock注解,执行加锁逻辑
+     *
+     * @param methodInvocation
+     * @param method
+     * @param lock
+     * @return
+     * @throws Throwable
+     */
     protected abstract Object doLock(MethodInvocation methodInvocation, Method method, Lock lock) throws Throwable;
 
     protected String buildLockKey(Method method, Lock lock, Object[] args) {
+        String lockKey;
+        if (lock.lockKey().length() == 0) {
+            lockKey = classNameMethodNameLockKey(method);
+        } else {
+            lockKey = customLockKey(method, lock, args);
+        }
+        return lockKey;
+    }
+
+    private String customLockKey(Method method, Lock lock, Object[] args) {
+        String lockKey;
         StandardEvaluationContext standardEvaluationContext = new StandardEvaluationContext();
         String[] parameterNames = new DefaultParameterNameDiscoverer().getParameterNames(method);
         if (parameterNames != null) {
@@ -49,10 +71,32 @@ public abstract class BaseLockAspect implements MethodInterceptor {
         }
         ExpressionParser parser = new SpelExpressionParser();
         Expression exp = parser.parseExpression(lock.lockKey());
-        String lockKey = (String) exp.getValue(standardEvaluationContext);
-        if (StringUtils.isEmpty(lockProperties.getGlobalLockKeyPrefix())) {
+        lockKey = (String) exp.getValue(standardEvaluationContext);
+        if (!StringUtils.isEmpty(lockProperties.getGlobalLockKeyPrefix())) {
             lockKey = lockProperties.getGlobalLockKeyPrefix() + lockKey;
         }
+        return lockKey;
+    }
+
+    private String classNameMethodNameLockKey(Method method) {
+        String lockKey;
+        String methodName = method.getName();
+        String className = method.getDeclaringClass().getName();
+        String[] classNameSplit = className.split("\\.");
+        StringBuilder lockKeyBuilder = new StringBuilder();
+        if (!StringUtils.isEmpty(lockProperties.getGlobalLockKeyPrefix())) {
+            lockKeyBuilder.append(lockProperties.getGlobalLockKeyPrefix());
+            lockKeyBuilder.append(KEY_SEPARATOR);
+        }
+        for (int i = 0; i < classNameSplit.length - 1; i++) {
+            String s = classNameSplit[i];
+            lockKeyBuilder.append(s, 0, 1);
+            lockKeyBuilder.append(PACKAGE_SEPARATOR);
+        }
+        lockKeyBuilder.append(classNameSplit[classNameSplit.length - 1]);
+        lockKeyBuilder.append(KEY_SEPARATOR);
+        lockKeyBuilder.append(methodName);
+        lockKey = lockKeyBuilder.toString();
         return lockKey;
     }
 

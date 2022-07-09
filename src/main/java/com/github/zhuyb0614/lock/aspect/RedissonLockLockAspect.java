@@ -35,6 +35,9 @@ public class RedissonLockLockAspect extends BaseLockAspect {
         RLock rLock = null;
         try {
             rLock = redissonClient.getLock(lockKey);
+            if (rLock == null) {
+                throw new LockException(getErrorMessage(lock));
+            }
             if (lock.waitLock()) {
                 if (rLock.tryLock(getWaitTimeMills(lock), getLeaseTimeMills(lock), TimeUnit.MILLISECONDS)) {
                     result = methodInvocation.proceed();
@@ -50,6 +53,7 @@ public class RedissonLockLockAspect extends BaseLockAspect {
             }
         } catch (InterruptedException e) {
             log.error("lock {} error", lockKey, e);
+            Thread.currentThread().interrupt();
             throw new LockException(lock.errorMessage());
         } finally {
             if (rLock != null && rLock.isHeldByCurrentThread()) {

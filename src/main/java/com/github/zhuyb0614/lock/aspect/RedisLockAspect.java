@@ -71,20 +71,7 @@ public class RedisLockAspect extends BaseLockAspect {
         try {
             int leaseTimeMills = getLeaseTimeMills(lock);
             if (lock.waitLock()) {
-                long startTimeMills = System.currentTimeMillis();
-                int waitTimeMills = getWaitTimeMills(lock);
-                while (true) {
-                    Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
-                    if (Boolean.TRUE.equals(setSuccess)) {
-                        result = methodInvocation.proceed();
-                        break;
-                    } else {
-                        if (System.currentTimeMillis() - startTimeMills > waitTimeMills) {
-                            throw new LockException(getErrorMessage(lock));
-                        }
-                        Thread.sleep(lock.tryLockPerMills() == 0 ? lockProperties.getTryLockPerMills() : lock.tryLockPerMills());
-                    }
-                }
+                result = tryLockWait(lock, methodInvocation, lockKey, uuid, leaseTimeMills);
             } else {
                 Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
                 if (Boolean.TRUE.equals(setSuccess)) {
@@ -100,6 +87,22 @@ public class RedisLockAspect extends BaseLockAspect {
             unlock(lockKey, uuid);
         }
         return result;
+    }
+
+    private Object tryLockWait(Lock lock, MethodInvocation methodInvocation, String lockKey, String lockValue, int leaseTimeMills) throws Throwable {
+        long startTimeMills = System.currentTimeMillis();
+        int waitTimeMills = getWaitTimeMills(lock);
+        while (true) {
+            Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
+            if (Boolean.TRUE.equals(setSuccess)) {
+                return methodInvocation.proceed();
+            } else {
+                if (System.currentTimeMillis() - startTimeMills > waitTimeMills) {
+                    throw new LockException(getErrorMessage(lock));
+                }
+                Thread.sleep(lock.tryLockPerMills() == 0 ? lockProperties.getTryLockPerMills() : lock.tryLockPerMills());
+            }
+        }
     }
 
 }

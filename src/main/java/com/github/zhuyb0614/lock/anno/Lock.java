@@ -13,10 +13,15 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface Lock {
+    /**
+     * 加锁key 可使用SPEL 默认为全方法名缩写
+     *
+     * @return
+     */
     String lockKey() default "";
 
     /**
-     * 获取不到锁时的错误信息 可以使用 SPEL
+     * 获取不到锁时的错误信息
      *
      * @return
      */

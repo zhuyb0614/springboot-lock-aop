@@ -33,10 +33,10 @@ public class LockAutoConfiguration {
         advisor.setPointcut(pointcut);
         MethodInterceptor interceptor;
         switch (lockProperties.getLockType()) {
-            case redis:
+            case REDIS:
                 interceptor = new RedisLockAspect(lockProperties, stringRedisTemplate);
                 break;
-            case redission:
+            case REDISSION:
                 interceptor = new RedissonLockLockAspect(lockProperties, redissonClient);
                 break;
             default:

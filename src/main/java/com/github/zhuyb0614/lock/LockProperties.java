@@ -20,7 +20,7 @@ public class LockProperties {
     /**
      * 加锁类型
      */
-    private LockType lockType = LockType.redission;
+    private LockType lockType = LockType.REDISSION;
     /**
      * 全局等待时长
      * 为0表示不等待
@@ -37,7 +37,7 @@ public class LockProperties {
     /**
      * 全局lock key的前缀
      */
-    private String globalLockKeyPrefix;
+    private String globalLockKeyPrefix = "lock";
     /**
      * 全局错误信息
      */
