@@ -22,9 +22,9 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/zhuyb0614/springboot-lock-aop</url>
-        <connection>scm:git:git@github.com:zhuyb0614/springboot-lock-aop.git</connection>
-        <developerConnection>scm:git:git@github.com:zhuyb0614/springboot-lock-aop.git</developerConnection>
+        <url>https://github.com/zhuyb0614/yb-aop-lock-spring-boot-starter</url>
+        <connection>scm:git:git@github.com:zhuyb0614/yb-aop-lock-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:git@github.com:zhuyb0614/yb-aop-lock-spring-boot-starter.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
