@@ -10,7 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.zhuyb0614</groupId>
-    <artifactId>springboot-lock-aop</artifactId>
+    <artifactId>aop-lock-spring-boot-starter</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
     <licenses>
