@@ -37,7 +37,7 @@ public class LockProperties {
     /**
      * 全局lock key的前缀
      */
-    private String globalLockKeyPrefix = "lock";
+    private String globalLockKeyPrefix = "lock:";
     /**
      * 全局错误信息
      */

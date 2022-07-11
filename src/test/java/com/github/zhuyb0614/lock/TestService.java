@@ -26,7 +26,7 @@ public class TestService {
     }
 
     @SneakyThrows
-    @Lock(lockKey = "#objParam.id", waitLock = true, waitTimeMills = 3000)
+    @Lock(lockKey = "'test2'+#objParam.id", waitLock = true, waitTimeMills = 3000)
     public Integer testParseIntLock(ObjParam objParam) {
         log.info("id {}", objParam.getId());
         Thread.sleep(2000);
