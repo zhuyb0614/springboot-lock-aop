@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -23,6 +24,7 @@ import java.util.UUID;
 public class RedisLockAspect extends BaseLockAspect {
 
     public static final DefaultRedisScript<String> UNLOCK_REDIS_SCRIPT = new DefaultRedisScript<>();
+    public static final StringRedisSerializer STRING_REDIS_SERIALIZER = new StringRedisSerializer();
     private static final String UNLOCK_LUA = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
     private static final Long RELEASE_SUCCESS = 1L;
 
@@ -38,12 +40,12 @@ public class RedisLockAspect extends BaseLockAspect {
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
-    public boolean unlock(String key, String value) {
-        Object result = stringRedisTemplate.execute(UNLOCK_REDIS_SCRIPT, stringRedisTemplate.getStringSerializer(), stringRedisTemplate.getStringSerializer(), Collections.singletonList(key), "\"" + value + "\"");
+    private boolean unlock(String key, String value) {
+        Object result = stringRedisTemplate.execute(UNLOCK_REDIS_SCRIPT, STRING_REDIS_SERIALIZER, STRING_REDIS_SERIALIZER, Collections.singletonList(key), value);
         //返回最终结果
         boolean isSuccess = RELEASE_SUCCESS.equals(result);
         if (isSuccess) {
-            log.info("unlock key {} value {} success", key, value);
+            log.debug("unlock key {} value {} success", key, value);
         } else {
             log.warn("unlock key {} value {} fail result {}", key, value, result);
         }
@@ -68,12 +70,26 @@ public class RedisLockAspect extends BaseLockAspect {
         //定义传入方法的上下文参数并解析最终的key
         String lockKey = buildLockKey(method, lock, args);
         String uuid = UUID.randomUUID().toString();
+        Boolean setSuccess = Boolean.FALSE;
         try {
             int leaseTimeMills = getLeaseTimeMills(lock);
             if (lock.waitLock()) {
-                result = tryLockWait(lock, methodInvocation, lockKey, uuid, leaseTimeMills);
+                long startTimeMills = System.currentTimeMillis();
+                int waitTimeMills = getWaitTimeMills(lock);
+                while (true) {
+                    setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
+                    if (Boolean.TRUE.equals(setSuccess)) {
+                        result = methodInvocation.proceed();
+                        break;
+                    } else {
+                        if (System.currentTimeMillis() - startTimeMills > waitTimeMills) {
+                            throw new LockException(getErrorMessage(lock));
+                        }
+                        Thread.sleep(lock.tryLockPerMills() == 0 ? lockProperties.getTryLockPerMills() : lock.tryLockPerMills());
+                    }
+                }
             } else {
-                Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
+                setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
                 if (Boolean.TRUE.equals(setSuccess)) {
                     result = methodInvocation.proceed();
                 } else {
@@ -84,25 +100,11 @@ public class RedisLockAspect extends BaseLockAspect {
             log.error("lock {} error", lockKey, e);
             throw new LockException(getErrorMessage(lock));
         } finally {
-            unlock(lockKey, uuid);
-        }
-        return result;
-    }
-
-    private Object tryLockWait(Lock lock, MethodInvocation methodInvocation, String lockKey, String lockValue, int leaseTimeMills) throws Throwable {
-        long startTimeMills = System.currentTimeMillis();
-        int waitTimeMills = getWaitTimeMills(lock);
-        while (true) {
-            Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, Duration.of(leaseTimeMills, ChronoUnit.MILLIS));
             if (Boolean.TRUE.equals(setSuccess)) {
-                return methodInvocation.proceed();
-            } else {
-                if (System.currentTimeMillis() - startTimeMills > waitTimeMills) {
-                    throw new LockException(getErrorMessage(lock));
-                }
-                Thread.sleep(lock.tryLockPerMills() == 0 ? lockProperties.getTryLockPerMills() : lock.tryLockPerMills());
+                unlock(lockKey, uuid);
             }
         }
+        return result;
     }
 
 }

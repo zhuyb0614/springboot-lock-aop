@@ -5,6 +5,7 @@ import com.github.zhuyb0614.lock.anno.Lock;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -62,16 +63,16 @@ public abstract class BaseLockAspect implements MethodInterceptor {
 
     private String customLockKey(Method method, Lock lock, Object[] args) {
         String lockKey;
-        StandardEvaluationContext standardEvaluationContext = new StandardEvaluationContext();
+        EvaluationContext standardEvaluationContext = new StandardEvaluationContext(args);
         String[] parameterNames = new DefaultParameterNameDiscoverer().getParameterNames(method);
         if (parameterNames != null) {
             for (int i = 0; i < parameterNames.length; i++) {
-                standardEvaluationContext.setVariable(parameterNames[i], args);
+                standardEvaluationContext.setVariable(parameterNames[i], args[i]);
             }
         }
         ExpressionParser parser = new SpelExpressionParser();
         Expression exp = parser.parseExpression(lock.lockKey());
-        lockKey = (String) exp.getValue(standardEvaluationContext);
+        lockKey = exp.getValue(standardEvaluationContext, String.class);
         if (!StringUtils.isEmpty(lockProperties.getGlobalLockKeyPrefix())) {
             lockKey = lockProperties.getGlobalLockKeyPrefix() + lockKey;
         }

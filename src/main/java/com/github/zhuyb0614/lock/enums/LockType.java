@@ -13,5 +13,5 @@ public enum LockType {
     /**
      * Redission tryLockPerMills 无效
      */
-    REDISSION
+    REDISSON
 }

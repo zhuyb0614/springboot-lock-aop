@@ -20,7 +20,7 @@ public class LockProperties {
     /**
      * 加锁类型
      */
-    private LockType lockType = LockType.REDISSION;
+    private LockType lockType = LockType.REDISSON;
     /**
      * 全局等待时长
      * 为0表示不等待

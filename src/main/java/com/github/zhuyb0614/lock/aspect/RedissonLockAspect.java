@@ -17,11 +17,11 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/7/7 6:08 下午
  */
 @Slf4j
-public class RedissonLockLockAspect extends BaseLockAspect {
+public class RedissonLockAspect extends BaseLockAspect {
 
     private RedissonClient redissonClient;
 
-    public RedissonLockLockAspect(LockProperties lockProperties, RedissonClient redissonClient) {
+    public RedissonLockAspect(LockProperties lockProperties, RedissonClient redissonClient) {
         super(lockProperties);
         this.redissonClient = redissonClient;
     }
@@ -48,13 +48,13 @@ public class RedissonLockLockAspect extends BaseLockAspect {
                 if (rLock.tryLock()) {
                     result = methodInvocation.proceed();
                 } else {
-                    throw new LockException(lock.errorMessage());
+                    throw new LockException(getErrorMessage(lock));
                 }
             }
         } catch (InterruptedException e) {
             log.error("lock {} error", lockKey, e);
             Thread.currentThread().interrupt();
-            throw new LockException(lock.errorMessage());
+            throw new LockException(getErrorMessage(lock));
         } finally {
             if (rLock != null && rLock.isHeldByCurrentThread()) {
                 rLock.unlock();
