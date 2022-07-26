@@ -1,5 +1,6 @@
-lock-aop:
-  lock-type: redis
+yb:
+  lock-aop:
+    lock-type: redis
 spring:
   redis:
     host: 127.0.0.1

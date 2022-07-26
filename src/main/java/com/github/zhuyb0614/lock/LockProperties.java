@@ -10,13 +10,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @date 2022/7/9 2:17 下午
  */
 @Data
-@ConfigurationProperties(prefix = "lock-aop")
+@ConfigurationProperties(prefix = "yb.lock-aop")
 public class LockProperties {
     /**
      * 手动开关
-     * != "on" 时不生效
      */
-    private String openSwitch = "on";
+    private boolean openSwitch = true;
     /**
      * 加锁类型
      */

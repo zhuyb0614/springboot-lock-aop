@@ -4,7 +4,6 @@ import com.github.zhuyb0614.lock.anno.Lock;
 import com.github.zhuyb0614.lock.aspect.RedisLockAspect;
 import com.github.zhuyb0614.lock.aspect.RedissonLockAspect;
 import lombok.extern.slf4j.Slf4j;
-import org.aopalliance.intercept.MethodInterceptor;
 import org.redisson.api.RedissonClient;
 import org.redisson.spring.starter.RedissonAutoConfiguration;
 import org.springframework.aop.Advisor;
@@ -25,14 +24,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * @date 2022/7/9 2:12 下午
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(value = "lock-aop.open-switch", havingValue = "on", matchIfMissing = true)
+@ConditionalOnProperty(value = "yb.lock-aop.open-switch", havingValue = "true", matchIfMissing = true)
 @Slf4j
 @EnableConfigurationProperties(LockProperties.class)
 @AutoConfigureAfter(value = {RedissonAutoConfiguration.class, RedisAutoConfiguration.class})
 public class LockAutoConfiguration {
     @Bean
     @ConditionalOnBean(RedissonClient.class)
-    @ConditionalOnProperty(name = "lock-aop.lock-type", havingValue = "redisson", matchIfMissing = true)
+    @ConditionalOnProperty(name = "yb.lock-aop.lock-type", havingValue = "redisson", matchIfMissing = true)
     @SuppressWarnings("all")
     public Advisor redssionPointcutAdvisor(RedissonClient redissonClient, LockProperties lockProperties) {
         DefaultPointcutAdvisor advisor = new DefaultPointcutAdvisor();
@@ -43,7 +42,7 @@ public class LockAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(StringRedisTemplate.class)
-    @ConditionalOnProperty(name = "lock-aop.lock-type", havingValue = "redis")
+    @ConditionalOnProperty(name = "yb.lock-aop.lock-type", havingValue = "redis")
     @SuppressWarnings("all")
     public Advisor redisPointcutAdvisor(StringRedisTemplate stringRedisTemplate, LockProperties lockProperties) {
         DefaultPointcutAdvisor advisor = new DefaultPointcutAdvisor();
