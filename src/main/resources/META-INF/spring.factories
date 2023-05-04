@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.github.zhuyb0614.lock.LockAutoConfiguration
+com.github.zhuyb0614.lock.RedisLockAutoConfiguration,\
+com.github.zhuyb0614.lock.RedissonLockAutoConfiguration

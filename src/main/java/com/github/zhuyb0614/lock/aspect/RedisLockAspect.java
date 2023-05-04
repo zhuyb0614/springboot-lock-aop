@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -23,17 +22,16 @@ import java.util.UUID;
 @Slf4j
 public class RedisLockAspect extends BaseLockAspect {
 
-    public static final DefaultRedisScript<String> UNLOCK_REDIS_SCRIPT = new DefaultRedisScript<>();
-    public static final StringRedisSerializer STRING_REDIS_SERIALIZER = new StringRedisSerializer();
+    public static final DefaultRedisScript<Long> UNLOCK_REDIS_SCRIPT = new DefaultRedisScript<>();
     private static final String UNLOCK_LUA = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
     private static final Long RELEASE_SUCCESS = 1L;
 
     static {
-        UNLOCK_REDIS_SCRIPT.setResultType(String.class);
+        UNLOCK_REDIS_SCRIPT.setResultType(Long.class);
         UNLOCK_REDIS_SCRIPT.setScriptText(UNLOCK_LUA);
     }
 
-    private StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     public RedisLockAspect(LockProperties lockProperties, StringRedisTemplate stringRedisTemplate) {
         super(lockProperties);
@@ -41,7 +39,7 @@ public class RedisLockAspect extends BaseLockAspect {
     }
 
     private boolean unlock(String key, String value) {
-        Object result = stringRedisTemplate.execute(UNLOCK_REDIS_SCRIPT, STRING_REDIS_SERIALIZER, STRING_REDIS_SERIALIZER, Collections.singletonList(key), value);
+        Object result = stringRedisTemplate.execute(UNLOCK_REDIS_SCRIPT, Collections.singletonList(key), value);
         //返回最终结果
         boolean isSuccess = RELEASE_SUCCESS.equals(result);
         if (isSuccess) {
